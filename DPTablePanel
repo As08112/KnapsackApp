@@ -1,0 +1,152 @@
+// DPTablePanel.java
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
+import java.awt.*;
+
+/**
+ * Класс DPTablePanel представляет собой панель для отображения таблицы динамического программирования (DP).
+ * Используется в визуализации алгоритмов, где таблица DP является важной частью вычислений, например, задача о рюкзаке.
+ */
+public class DPTablePanel extends JPanel {
+    private JTable dpTable; // Таблица для отображения данных DP
+    private DefaultTableModel dpTableModel; // Модель данных для таблицы
+
+    /**
+     * Конструктор класса DPTablePanel.
+     * Устанавливает компоновку панели и создает таблицу с возможностью прокрутки.
+     */
+    public DPTablePanel() {
+        setLayout(new BorderLayout()); // Установка менеджера компоновки
+
+        dpTableModel = new DefaultTableModel() {
+            // Сделать все столбцы не редактируемыми
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        dpTable = new JTable(dpTableModel);
+
+        // Настройка таблицы
+        dpTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF); // Отключение автоизменения размеров столбцов
+        dpTable.setFillsViewportHeight(true); // Заполнение доступного пространства
+
+        // Центрирование текста в ячейках
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        dpTable.setDefaultRenderer(Object.class, centerRenderer);
+
+        // Настройка заголовков таблицы
+        JTableHeader header = dpTable.getTableHeader();
+        header.setDefaultRenderer(new HeaderRenderer(dpTable));
+
+        // Обертывание таблицы в прокручиваемую панель с горизонтальной и вертикальной прокруткой
+        JScrollPane scrollPane = new JScrollPane(dpTable,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        add(scrollPane, BorderLayout.CENTER); // Добавление прокручиваемой таблицы на панель
+    }
+
+    /**
+     * Генерирует массив заголовков столбцов.
+     *
+     * @param capacity Вместимость рюкзака.
+     * @return Массив строк для заголовков.
+     */
+    private String[] generateColumnNames(int capacity) {
+        String[] columns = new String[capacity + 1];
+        columns[0] = "Предмет";
+        for (int w = 0; w <= capacity; w++) {
+            columns[w] = String.valueOf(w);
+        }
+        return columns;
+    }
+
+    /**
+     * Метод для отображения данных в таблице DP.
+     *
+     * @param dpTableData Двумерный массив с данными таблицы DP.
+     * @param numItems    Количество предметов (строк таблицы).
+     * @param capacity    Вместимость (количество столбцов таблицы).
+     */
+    public void displayDPTable(int[][] dpTableData, int numItems, int capacity) {
+        // Очистка предыдущих данных таблицы
+        dpTableModel.setRowCount(0); // Сброс строк
+        dpTableModel.setColumnCount(0); // Сброс столбцов
+
+        // Установка заголовков столбцов
+        dpTableModel.setColumnIdentifiers(generateColumnNames(capacity));
+
+        // Заполнение строк таблицы
+        for (int i = 0; i <= numItems; i++) {
+            Object[] row = new Object[capacity + 1]; // Создание строки
+            row[0] = i == 0 ? "0 предмет" : "Предмет " + i; // Первый элемент строки для обозначения предмета
+            for (int w = 0; w <= capacity; w++) {
+                row[w] = dpTableData[i][w]; // Заполнение значений для текущей строки
+            }
+            dpTableModel.addRow(row); // Добавление строки в модель таблицы
+        }
+
+        // Опционально: применение цветового кодирования
+        applyColorCoding(dpTableData, numItems, capacity);
+    }
+
+    /**
+     * Метод для применения цветового кодирования к таблице DP.
+     *
+     * @param dpTableData Двумерный массив с данными таблицы DP.
+     * @param numItems    Количество предметов.
+     * @param capacity    Вместимость рюкзака.
+     */
+    private void applyColorCoding(int[][] dpTableData, int numItems, int capacity) {
+        // Пример: выделение ячеек с максимальными значениями в каждой строке
+        for (int i = 0; i <= numItems; i++) {
+            int max = Integer.MIN_VALUE;
+            for (int w = 0; w <= capacity; w++) {
+                if (dpTableData[i][w] > max) {
+                    max = dpTableData[i][w];
+                }
+            }
+            for (int w = 0; w <= capacity; w++) {
+                if (dpTableData[i][w] == max && max != 0) {
+                    dpTable.prepareRenderer(dpTable.getCellRenderer(i, w), i, w).setBackground(Color.YELLOW);
+                } else {
+                    dpTable.prepareRenderer(dpTable.getCellRenderer(i, w), i, w).setBackground(Color.WHITE);
+                }
+            }
+        }
+    }
+
+    /**
+     * Метод для очистки таблицы от всех данных.
+     * Полезен для подготовки к новому отображению или сбросу состояния.
+     */
+    public void clearTable() {
+        dpTableModel.setRowCount(0); // Удаление всех строк
+        dpTableModel.setColumnCount(0); // Удаление всех столбцов
+    }
+
+    /**
+     * Класс для рендеринга заголовков таблицы с жирным шрифтом и центрированием.
+     */
+    private static class HeaderRenderer extends DefaultTableCellRenderer {
+        public HeaderRenderer(JTable table) {
+            setFont(table.getFont().deriveFont(Font.BOLD));
+            setHorizontalAlignment(SwingConstants.CENTER);
+            setBackground(Color.DARK_GRAY);
+            setForeground(Color.WHITE);
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                       boolean isSelected, boolean hasFocus,
+                                                       int row, int column) {
+            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            setBorder(UIManager.getBorder("TableHeader.cellBorder"));
+            return this;
+        }
+    }
+}
